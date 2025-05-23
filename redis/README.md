@@ -75,6 +75,10 @@ For the ease of accessing Redis from other containers via Docker networking, the
 -	[Protected mode](https://redis.io/docs/latest/operate/oss_and_stack/management/security/#protected-mode)
 -	[A few things about Redis security by antirez](http://antirez.com/news/96)
 
+## Process User and Privileges
+
+By default, the Redis Docker image drops privileges by switching to the `redis` user and removing unnecessary capabilities. If Docker is run with the `--user` option, this step is skipped. Alternatively, you can set the `SKIP_DROP_PRIVS=1` (since 8.2.x) environment variable to prevent the container from switching to a non-privileged user.
+
 # How to use this image
 
 ## Start a redis instance
@@ -92,6 +96,20 @@ $ docker run --name some-redis -d redis redis-server --save 60 1 --loglevel warn
 There are several different persistence strategies to choose from. This one will save a snapshot of the DB every 60 seconds if at least 1 write operation was performed (it will also lead to more logs, so the `loglevel` option may be desirable). If persistence is enabled, data is stored in the `VOLUME /data`, which can be used with `--volumes-from some-volume-container` or `-v /docker/host/dir:/data` (see [docs.docker volumes](https://docs.docker.com/engine/tutorials/dockervolumes/)).
 
 For more about Redis persistence, see [the official Redis documentation](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/).
+
+### File and Directory Permissions
+
+Redis will attempt to correct the ownership and permissions of the data and configuration (since 8.2.x) directories and files if they are not set appropriately. The data directory is expected to be writable by the `redis` user. The configuration directory should be readable by `redis-server` and writable if `redis-sentinel` is being used.
+
+You can skip this step by setting the `SKIP_FIX_PERMS=1`(since 8.2.x) environment variable.
+
+### Manually Setting File and Directory Permissions
+
+If you prefer to handle file permissions yourself, you can use a `docker run` command to set the correct ownership on mounted volumes. For example:
+
+```console
+docker run --rm -v /your/host/path:/data redis chown -R redis:redis /data
+```
 
 ## Connecting via `redis-cli`
 
